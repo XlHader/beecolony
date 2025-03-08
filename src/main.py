@@ -28,6 +28,8 @@ def parse_arguments():
                         help="Proporción de abejas exploradoras")
     parser.add_argument("--max_epochs", type=int, default=10000,
                         help="Número máximo de iteraciones")
+    parser.add_argument("--acceptance_prob", type=float, default=0.00,
+                        help="Probabilidad de aceptación de un empeoramiento en la solución")
 
     return parser.parse_args()
 
@@ -102,7 +104,8 @@ def main():
     start_time = time.time()
     best_distance, best_path, convergence = solve(
         dist_matrix, args.n_bees, args.max_epochs,
-        active_ratio=args.active_bees, scout_ratio=args.explorer_bees
+        active_ratio=args.active_bees, scout_ratio=args.explorer_bees,
+        acceptance_prob=args.acceptance_prob
     )
     execution_time = time.time() - start_time
     error_percentage = (

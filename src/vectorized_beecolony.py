@@ -13,7 +13,7 @@ def compute_distance(paths, dist_matrix):
     return d
 
 
-def solve(dist_matrix, nb, max_epochs, active_ratio=0.5, scout_ratio=0.25):
+def solve(dist_matrix, nb, max_epochs, active_ratio=0.5, scout_ratio=0.25, acceptance_prob=0.00):
     """
     Resuelve el TSP usando un algoritmo de colonia de abejas optimizado con NumPy.
     Se incorporan mejoras en la exploración mediante:
@@ -57,7 +57,6 @@ def solve(dist_matrix, nb, max_epochs, active_ratio=0.5, scout_ratio=0.25):
     stagnation_threshold = 50
 
     convergence = []
-    acceptance_prob = 0.05  # probabilidad de aceptar un empeoramiento
 
     for epoch in range(max_epochs):
         convergence.append(best_distance)
@@ -189,7 +188,6 @@ def solve(dist_matrix, nb, max_epochs, active_ratio=0.5, scout_ratio=0.25):
                             neighbor_distances_inactive[update_mask])].copy()
 
         # --- Mecanismo de reinicialización por estancamiento ---
-        # Se incrementa para todas las abejas que no hayan sido actualizadas (ya se reseteó donde hubo mejora)
         stagnation += 1
         reinit_indices = np.where(stagnation > stagnation_threshold)[0]
         if reinit_indices.size > 0:
