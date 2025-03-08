@@ -1,4 +1,5 @@
 import numpy as np
+from tqdm import tqdm
 
 
 def compute_distance(paths, dist_matrix):
@@ -58,7 +59,7 @@ def solve(dist_matrix, nb, max_epochs, active_ratio=0.5, scout_ratio=0.25, accep
 
     convergence = []
 
-    for epoch in range(max_epochs):
+    for _ in tqdm(range(max_epochs), desc="Procesando epochs"):
         convergence.append(best_distance)
 
         # --- Actualización para abejas activas (status == 2) ---

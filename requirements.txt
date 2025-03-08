@@ -2,3 +2,4 @@ tsplib95
 pandas
 numpy
 matplotlib
+tqdm
