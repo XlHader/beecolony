@@ -4,9 +4,10 @@ import os
 import time
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 import tsplib95
 
-from src.beecolony import solve
+from src.vectorized_beecolony import solve
 
 
 def parse_arguments():
@@ -57,20 +58,19 @@ def load_optimal_tour(tour_file):
         if recording:
             if "-1" in line or "EOF" in line:
                 break
-            # Se asume que los nodos vienen como enteros
             tour.append(int(line.strip()))
     return tour
 
 
-def compute_optimal_distance(optimal_tour, problem):
+def compute_optimal_distance(optimal_tour, dist_matrix, index_map):
     """
-    Calcula la distancia de la ruta óptima usando el objeto problem.
-    Se asume que el tour es cíclico (se retorna al nodo inicial).
+    Calcula la distancia de la ruta óptima usando la matriz de distancias.
+    Se asume que el tour es cíclico.
     """
-    distance = 0.0
-    for i in range(len(optimal_tour) - 1):
-        distance += problem.get_weight(optimal_tour[i], optimal_tour[i+1])
-    distance += problem.get_weight(optimal_tour[-1], optimal_tour[0])
+    # Convertir el tour a índices (asumimos que en el .opt.tour se restó 1 si era 1-indexado)
+    indices = [index_map[node] for node in optimal_tour]
+    distance = np.sum(dist_matrix[indices[:-1], indices[1:]])
+    distance += dist_matrix[indices[-1], indices[0]]
     return distance
 
 
@@ -78,20 +78,37 @@ def main():
     args = parse_arguments()
     validate_files(args.tsp, args.tour)
 
-    # Cargar la instancia TSP y el tour óptimo
+    # Cargar la instancia TSP
     problem = tsplib95.load(args.tsp)
+
+    # Obtener y ordenar los nodos para mapearlos a índices 0...n-1
+    nodes = sorted(problem.get_nodes())
+    n_nodes = len(nodes)
+    index_map = {node: i for i, node in enumerate(nodes)}
+
+    # Precalcular la matriz de distancias
+    dist_matrix = np.empty((n_nodes, n_nodes))
+    for i, node_i in enumerate(nodes):
+        for j, node_j in enumerate(nodes):
+            dist_matrix[i, j] = problem.get_weight(node_i, node_j)
+
+    # Cargar tour óptimo y calcular la distancia óptima
     optimal_tour = load_optimal_tour(args.tour)
-    optimal_distance = compute_optimal_distance(optimal_tour, problem)
+    optimal_distance = compute_optimal_distance(
+        optimal_tour, dist_matrix, index_map)
     print(f"Distancia óptima conocida: {optimal_distance}")
 
+    # Ejecutar el algoritmo y medir tiempo de ejecución
     start_time = time.time()
-    best_distance, best_path, convergence = solve(problem, args.n_bees, args.max_epochs,
-                                                  args.active_bees, args.explorer_bees)
+    best_distance, best_path, convergence = solve(
+        dist_matrix, args.n_bees, args.max_epochs,
+        active_ratio=args.active_bees, scout_ratio=args.explorer_bees
+    )
     execution_time = time.time() - start_time
     error_percentage = (
         (best_distance - optimal_distance) / optimal_distance) * 100
 
-    # Crear DataFrame con pandas con los resultados
+    # Crear DataFrame con los resultados
     df = pd.DataFrame({
         "Distancia Final": [best_distance],
         "Tiempo de Ejecución (s)": [execution_time],
